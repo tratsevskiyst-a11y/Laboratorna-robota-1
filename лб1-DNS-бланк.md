@@ -169,7 +169,81 @@ curl: (7) Failed to connect to www.cs-201-24.lab port 8443 after 0 ms: Couldn't 
 ## Завдання 2. Проходження ієрархії вручну
 
 ```text
+root@ns-cs-201-24:/# dig @10.53.0.2 ns.cs-201-24.lab A +norec
 
+; <<>> DiG 9.18.39-0ubuntu0.24.04.9-Ubuntu <<>> @10.53.0.2 ns.cs-201-24.lab A +norec
+; (1 server found)
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 27652
+;; flags: qr; QUERY: 1, ANSWER: 0, AUTHORITY: 1, ADDITIONAL: 2
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 1232
+; COOKIE: 8a04d47369f2d296010000006afc58d1be36c2acdd95c109 (good)
+;; QUESTION SECTION:
+;ns.cs-201-24.lab.              IN      A
+
+;; AUTHORITY SECTION:
+lab.                    172800  IN      NS      ns1.nic.lab.
+
+;; ADDITIONAL SECTION:
+ns1.nic.lab.            172800  IN      A       10.53.0.3
+
+;; Query time: 81 msec
+;; SERVER: 10.53.0.2#53(10.53.0.2) (UDP)
+;; WHEN: Tue Nov 17 13:38:25 UTC 2026
+;; MSG SIZE  rcvd: 117
+root@ns-cs-201-24:/# dig @10.53.0.3 ns.cs-201-24.lab A +norec
+
+; <<>> DiG 9.18.39-0ubuntu0.24.04.9-Ubuntu <<>> @10.53.0.3 ns.cs-201-24.lab A +norec
+; (1 server found)
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 52699
+;; flags: qr; QUERY: 1, ANSWER: 0, AUTHORITY: 1, ADDITIONAL: 2
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 1232
+; COOKIE: d27913b6ccb53974010000006afc58ff2df0b744dbb841b9 (good)
+;; QUESTION SECTION:
+;ns.cs-201-24.lab.              IN      A
+
+;; AUTHORITY SECTION:
+cs-201-24.lab.          3600    IN      NS      ns.cs-201-24.lab.
+
+;; ADDITIONAL SECTION:
+ns.cs-201-24.lab.       3600    IN      A       10.53.1.1
+
+;; Query time: 80 msec
+;; SERVER: 10.53.0.3#53(10.53.0.3) (UDP)
+;; WHEN: Tue Nov 17 13:39:11 UTC 2026
+;; MSG SIZE  rcvd: 103
+root@ns-cs-201-24:/# dig @10.53.1.1 ns.cs-201-24.lab A +norec
+
+; <<>> DiG 9.18.39-0ubuntu0.24.04.9-Ubuntu <<>> @10.53.1.1 ns.cs-201-24.lab A +norec
+; (1 server found)
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 47885
+;; flags: qr aa; QUERY: 1, ANSWER: 1, AUTHORITY: 1, ADDITIONAL: 1
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 1232
+; COOKIE: 21cd5f7c617d3ada010000006afc592a6d5b23da1138746f (good)
+;; QUESTION SECTION:
+;ns.cs-201-24.lab.              IN      A
+
+;; ANSWER SECTION:
+ns.cs-201-24.lab.       75      IN      A       10.53.1.1
+
+;; AUTHORITY SECTION:
+cs-201-24.lab.          75      IN      NS      ns.cs-201-24.lab.
+
+;; Query time: 1 msec
+;; SERVER: 10.53.1.1#53(10.53.1.1) (UDP)
+;; WHEN: Tue Nov 17 13:39:54 UTC 2026
+;; MSG SIZE  rcvd: 103
 ```
 
 | Сервер | status | flags | ANSWER | AUTHORITY | ADDITIONAL |
@@ -213,7 +287,10 @@ cs-201-24.lab.          75      IN      NS      ns.cs-201-24.lab.
 Вивід `zone-reload`:
 
 ```text
-
+root@ns-cs-201-24:/# zone-reload
+zone cs-201-24.lab/IN: loaded serial 2026110402
+OK
+zone reload queued
 ```
 
 <!-- Шість запитів до 10.53.1.1 з +norec, по одному на кожен рядок таблиці картки. -->
@@ -489,67 +566,81 @@ www.cs-201-24.lab.      73      IN      A       10.53.0.81
 ## Завдання 7. Інцидент: зупинка власного сервера
 
 **Прогноз** (записати до вимірювання). Що поверне кожен резолвер після зупинки сервера та спливання TTL і скільки часу займе відповідь:
-resolver-a: поверне помилку SERVFAIL або тайм-аут (без даних), оскільки кеш застарів, а авторитетний сервер недоступний. Відповідь займе близько 3 секунд (час таймауту повторних спроб). resolver-b: поверне закешовану IP-адресу із застарілого кешу завдяки механізму Serve-Stale. Відповідь буде практично миттєвою (до 1–2 секунд).
+resolver-a: поверне помилку SERVFAIL або тайм-аут, оскільки кеш застарів, а авторитетний сервер недоступний. Відповідь займе близько 3 секунд. resolver-b: поверне закешовану IP-адресу із застарілого кешу завдяки механізму Serve-Stale. Відповідь буде практично миттєвою (до 1–2 секунд).
 Кешування запису в обох резолверах і час зупинки сервера:
 
 ```text
-root@ns-cs-201-24:/# dig @10.53.0.53 host2.cs-201-24.lab +noall +answer
-root@ns-cs-201-24:/# dig @10.53.0.54 host2.cs-201-24.lab +noall +answer
+root@ns-cs-201-24:/# dig @10.53.0.53 www.cs-201-24.lab +noall +answer
+www.cs-201-24.lab.      75      IN      A       10.53.0.81
+root@ns-cs-201-24:/# dig @10.53.0.54 www.cs-201-24.lab +noall +answer
+www.cs-201-24.lab.      75      IN      A       10.53.0.81
 root@ns-cs-201-24:/# named-stop
-root@ns-cs-201-24:/# sleep 85
+root@ns-cs-201-24:/# sleep 90
 ```
 
 Запити із заміром часу (крок 5):
 
 ```text
-root@ns-cs-201-24:/# time dig @10.53.0.53 host2.cs-201-24.lab +tries=1 +timeout=3
+root@ns-cs-201-24:/# time dig @10.53.0.53 www.cs-201-24.lab +tries=1 +timeout=30
 ;; communications error to 10.53.0.53#53: timed out
 
-; <<>> DiG 9.18.39-0ubuntu0.24.04.9-Ubuntu <<>> @10.53.0.53 host2.cs-201-24.lab +tries=1 +timeout=3
+; <<>> DiG 9.18.39-0ubuntu0.24.04.9-Ubuntu <<>> @10.53.0.53 www.cs-201-24.lab +tries=1 +timeout=30
 ; (1 server found)
 ;; global options: +cmd
 ;; no servers could be reached
 
-real    0m3.024s
+real    0m30.161s
 user    0m0.004s
-sys     0m0.007s
-root@ns-cs-201-24:/# time dig @10.53.0.53 host2.cs-201-24.lab +tries=1 +timeout=3
-;; communications error to 10.53.0.53#53: timed out
+sys     0m0.009s
+root@ns-cs-201-24:/# time dig @10.53.0.53 www.cs-201-24.lab +tries=1 +timeout=30
 
-; <<>> DiG 9.18.39-0ubuntu0.24.04.9-Ubuntu <<>> @10.53.0.53 host2.cs-201-24.lab +tries=1 +timeout=3
-; (1 server found)
-;; global options: +cmd
-;; no servers could be reached
-
-real    0m3.025s
-user    0m0.006s
-sys     0m0.006s
-root@ns-cs-201-24:/# time dig @10.53.0.54 host2.cs-201-24.lab +tries=1 +timeout=3
-
-; <<>> DiG 9.18.39-0ubuntu0.24.04.9-Ubuntu <<>> @10.53.0.54 host2.cs-201-24.lab +tries=1 +timeout=3
+; <<>> DiG 9.18.39-0ubuntu0.24.04.9-Ubuntu <<>> @10.53.0.53 www.cs-201-24.lab +tries=1 +timeout=30
 ; (1 server found)
 ;; global options: +cmd
 ;; Got answer:
-;; ->>HEADER<<- opcode: QUERY, status: NXDOMAIN, id: 39937
-;; flags: qr rd ra; QUERY: 1, ANSWER: 0, AUTHORITY: 1, ADDITIONAL: 1
+;; ->>HEADER<<- opcode: QUERY, status: SERVFAIL, id: 31182
+;; flags: qr rd ra; QUERY: 1, ANSWER: 0, AUTHORITY: 0, ADDITIONAL: 1
 
 ;; OPT PSEUDOSECTION:
 ; EDNS: version: 0, flags:; udp: 1232
 ;; QUESTION SECTION:
-;host2.cs-201-24.lab.           IN      A
+;www.cs-201-24.lab.             IN      A
 
-;; AUTHORITY SECTION:
-cs-201-24.lab.          30      IN      SOA     ns.cs-201-24.lab. admin.cs-201-24.lab. 2026110404 3600 600 86400 90
+;; Query time: 0 msec
+;; SERVER: 10.53.0.53#53(10.53.0.53) (UDP)
+;; WHEN: Tue Nov 17 14:20:26 UTC 2026
+;; MSG SIZE  rcvd: 46
 
-;; Query time: 1799 msec
+
+real    0m0.024s
+user    0m0.008s
+sys     0m0.004s
+root@ns-cs-201-24:/# time dig @10.53.0.54 www.cs-201-24.lab +tries=1 +timeout=30
+
+; <<>> DiG 9.18.39-0ubuntu0.24.04.9-Ubuntu <<>> @10.53.0.54 www.cs-201-24.lab +tries=1 +timeout=30
+; (1 server found)
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 41197
+;; flags: qr rd ra; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 1
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 1232
+;; QUESTION SECTION:
+;www.cs-201-24.lab.             IN      A
+
+;; ANSWER SECTION:
+www.cs-201-24.lab.      30      IN      A       10.53.0.81
+
+;; Query time: 1800 msec
 ;; SERVER: 10.53.0.54#53(10.53.0.54) (UDP)
-;; WHEN: Wed Nov 04 03:33:10 UTC 2026
-;; MSG SIZE  rcvd: 93
+;; WHEN: Tue Nov 17 14:20:34 UTC 2026
+;; MSG SIZE  rcvd: 62
 
 
-real    0m1.821s
-user    0m0.005s
-sys     0m0.006s
+real    0m1.823s
+user    0m0.008s
+sys     0m0.003s
 ```
 
 | Запит | status або тайм-аут | ANSWER, TTL | `real` |
@@ -561,9 +652,18 @@ sys     0m0.006s
 Час `named-start` і вивід циклу спостереження до першої успішної відповіді (крок 6):
 
 ```text
-03:38:52
-03:38:54
-03:38:56 10.53.0.81
+root@ns-cs-201-24:/# named-start
+root@ns-cs-201-24:/# while true; do echo "$(date +%T) $(dig @10.53.0.53 www.cs-201-24.lab +short +tries=1 +timeout=3)"; sleep 2; done
+14:20:42 
+14:20:44 
+14:20:46 
+14:20:48 
+14:20:50 
+14:20:52 
+14:20:54 
+14:20:56 
+14:20:58 
+14:21:01 10.53.0.81
 ```
 
 Перевірка після завдання (`dig @10.53.1.1 sNN.lab SOA +norec +short`):
@@ -577,11 +677,7 @@ ns.cs-201-24.lab. admin.cs-201-24.lab. 2026110404 3600 600 86400 90
 
 1. Що сталося: Авторитетний сервер домену був зупинений за допомогою команди named-stop, через що перестав відповідати на зовнішні запити.
 2. Вплив на клієнтів resolver-a і resolver-b: Звичайний resolver-a видавав тайм-аут і помилку, тоді як resolver-b завдяки функції Serve-Stale успішно віддавав застарілі дані з кешу.
-3. Хронологія з виміряним часом: 03:38:00 — зупинка авторитетного сервера (named-stop).
-03:38:00 – 03:38:45 — період дії кешу, коли ресолвери ще віддавали старі дані.
-03:38:46 – 03:38:51 — початок таймаутів та помилок (SERVFAIL) через вичерпання TTL.
-03:38:52 — запуск сервера (named-start).
-03:38:54 – 03:38:58 — поява успішних відповідей із правильною IP-адресою 10.53.0.81 після ініціалізації служби.
+3. Хронологія з виміряним часом: О 14:18:52 зупинено сервер; о 14:20:26 зафіксовано відмову resolver-a  зі статусом SERVFAIL, о 14:20:34 стабільну відповідь resolver-b зі статусом NOERROR, о 14:20:42 виконано named-start, 0 14:21:01 відновив успішне резолвлення імені
 4. Чому кеш допоміг або не допоміг: Кеш допоміг на resolver-b, дозволивши видати застарілу інформацію під час збою, тоді як стандартний resolver-a без Serve-Stale не зміг відповісти клієнту.
 5. Що слід змінити: Слід увімкнути підтримку Serve-Stale на всіх ресолверах для підвищення стійкості системи до падінь авторитетних серверів.
 
